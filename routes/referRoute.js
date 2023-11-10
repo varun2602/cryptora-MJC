@@ -13,10 +13,10 @@ router.get("/test-amount", async function(req, res){
 
 // Record spent amount 
 router.post("/record-spent-amount", async function(req, res){
-    const { amount, user_email_front } = req.body 
+    const { amount, user_referral_front } = req.body 
     
     // Verify if it's a valid user  
-    user_verify = await User.findOne({email:user_email_front})
+    user_verify = await User.findOne({referral:user_referral_front})
     // console.log(user_verify)
     if(user_verify == null){
         return res.json({"response":"Invalid User"})
@@ -24,12 +24,12 @@ router.post("/record-spent-amount", async function(req, res){
 
     // Record spent amount 
         //  Check if an entry exists 
-    amount_spent_entry = await amountSpentFront.findOne({user_email:user_email_front})
+    amount_spent_entry = await amountSpentFront.findOne({user_referral:user_referral_front})
     // console.log(amount_spent_entry)
     if(amount_spent_entry == null){
         // Create a new entry 
         newEntry = {
-            "user_email":user_email_front,
+            "user_referral":user_referral_front,
             "amountSpent":amount
         }
         // console.log(newEntry)
@@ -40,7 +40,7 @@ router.post("/record-spent-amount", async function(req, res){
         })
     }
     else{
-        amount_spent_model = await amountSpentFront.findOne({user_email:user_email_front})
+        amount_spent_model = await amountSpentFront.findOne({user_referral:user_referral_front})
         amount_spent_model.amountSpent += amount
         amount_spent_model.save()
         return res.json({"response":"200"})
@@ -50,323 +50,800 @@ router.post("/record-spent-amount", async function(req, res){
     
 })
 
-// 9 levels 
-router.post("/get-referral-info", async function(req, res){
-    const {main_user_email} = req.body 
-    
-    // Getting level 1 emails 
-    // Getting user referral id 
-    const main_user_model=  await User.findOne({email:main_user_email})
-    const main_user_referral = main_user_model.referral
-    // Getting level1 models where referredBy is main_user_referral 
-    level1_emails = []
-    level1_spent_amounts = {}
-    level1_total_rewards = 0
-    level1_email_models = await User.find({referedBy:main_user_referral}) 
-    if(level1_email_models.length !== 0)
-    {for(i of level1_email_models){
-        level1_emails.push(i.email)
-        let level1_spent_amount = await amountSpentFront.findOne({user_email:i.email})
-        if(level1_spent_amount !== null){
-        level1_spent_amounts[i.email] = level1_spent_amount.amountSpent
-        }
-    }}
-// Calculating level 1 rewards 
-var count1 = 0
-if((level1_spent_amounts).length !== 0){
-    for(const [email1, spentAmount1] of Object.entries(level1_spent_amounts)){
-        count1 += spentAmount1
-    }
-    level1_total_rewards = count1*0.5
-}
-    
 
-    // Getting level2 emails
-    level1_referral_id = []
-    level2_emails = []
-    level2_spent_amounts = {}
-    level2_total_rewards = []
-    if(level1_email_models.length !== 0)
-    {for(email_models of level1_email_models){
-        level1_referral_id.push(email_models.referral)
-    }}
-    // Getting models where referredBy is level1_referral_id elements 
-    if(level1_referral_id.length !== 0)
-    {for(i of level1_referral_id){
-        let level2_user_models = await User.find({referedBy:i})
+
+router.post("/referral-info-level1", async function(req, res){
+    const { main_user_referral } = req.body
+
+    // Get level 1 referrals 
+    let level1_referrals = await User.find({referedBy: main_user_referral})
+   
+    let level1_dict = {}
+    let level1_rewards = 0
+    for(i of level1_referrals){
+        // Find the amount spent model corresponding to each level1 referral 
+        let spent_amount_model = await amountSpentFront.findOne({user_referral:i.referral})
         
-        if(level2_user_models.length !==  0){
-        for(j of level2_user_models){
-            level2_emails.push(j.email)
-            let level2_spent_amount = await amountSpentFront.findOne({user_email:j.email})
-            if(level2_spent_amount !== null){
-                level2_spent_amounts[j.email] = level2_spent_amount.amountSpent
-            }
+        
+        // If the referral has spent money 
+        if(spent_amount_model !== null){
+            level1_dict[i.referral] = [spent_amount_model.amountSpent, spent_amount_model.created_at]
+
+           
         }
-    } }  
+        // If the referral hasn't spent money yet 
+        else{
+            level1_dict[i.referral] = [0, "No amount spent yet"]
+           
+        }
     }
-    // TEST 
-    var count2 = 0 
-    if((level2_spent_amounts).length !== 0){
-    for(const [email2, spentAmout2] of Object.entries(level2_spent_amounts)){
-        count2 += spentAmout2 
-    }
-    level2_total_rewards = count2*0.2
-}
     
-//    Getting level3 emails 
-    // Getting level 2 referral ids 
-    level2_referral_id = []
-    level3_emails = []
-    level3_spent_amounts = {}
-    level3_total_rewards = 0
-    if(level2_emails.length !== 0){
-        for(i of level2_emails){
-            let ref_model = await User.findOne({email:i})
-            if(ref_model !== null){
-            level2_referral_id.push(ref_model.referral)
-            }
+    if((level1_dict).length !== 0){
+        var count1 = 0
+        for(const [referral1, amount1] of Object.entries(level1_dict)){
+            count1 += amount1[0]
         }
+        level1_rewards = count1*0.5
+        
     }
-    // console.log("level2 referral", level2_referral_id)
-    if(level2_referral_id.length !== 0){
-        for(i of level2_referral_id){
-            let level3_models = await User.findOne({referedBy:i})
-            // console.log("level 3", level3_models)
-            if(level3_models !== null){
-            level3_emails.push(level3_models.email)
-            let level3_spent_amount = await amountSpentFront.findOne({user_email:level3_models.email})
-            if(level3_spent_amount !== null){
-                level3_spent_amounts[level3_models.email] = level3_spent_amount.amountSpent
-            }
-            }
-        }
-    }
-    var count3 = 0
-    if((level3_spent_amounts).length !== 0){
-        for(const[email3, spentAmount3] of  Object.entries(level3_spent_amounts)){
-            count3 += spentAmount3
-        }
-        level3_total_rewards = count3*0.1
-    }
-//    Getting level4 emails 
-    // Getting level 3 referral ids 
-    level3_referral_id = []
-    level4_emails = []
-    level4_spent_amounts = {}
-    level4_total_rewards = 0
-    // console.log(level3_emails.length, level3_emails)
-    if(level3_emails.length !== 0){
-        for(i of level3_emails){
-            let ref_model = await User.findOne({email:i})
-            if(ref_model !== null){
-            level3_referral_id.push(ref_model.referral)
-            }
-        }
-    }
-    if(level3_referral_id.length !== 0){
-        for(i of level3_referral_id){
-            let level4_models = await User.findOne({referedBy:i})
-            if(level4_models !== null){
-            level4_emails.push(level4_models.email)
-            let level4_spent_amount = await amountSpentFront.findOne({user_email:level4_models.email})
-            if(level4_spent_amount !== null){
-                level4_spent_amounts[level4_models.email] = level4_spent_amount.amountSpent
-            }
-            }
-        }
-    }
-    var count4 = 0 
-    if((level4_spent_amounts).length !== 0){
-        for(const[email4, spentAmount4] of Object.entries(level4_spent_amounts)){
-            count4 += spentAmount4
-        }
-        level4_total_rewards = count4 *0.05
-    }
-//    Getting level5 emails 
-    // Getting level 4 referral ids 
-    level4_referral_id = []
-    level5_emails = []
-    level5_spent_amounts = {}
-    level5_total_rewards = 0
-    // console.log(level3_emails.length, level3_emails)
-    if(level4_emails.length !== 0){
-        for(i of level4_emails){
-            let ref_model = await User.findOne({email:i})
-            if(ref_model !== null){
-            level4_referral_id.push(ref_model.referral)
-            }
-        }
-    }
-    // Getting level5 emails 
-    if(level4_referral_id.length !== 0){
-        for(i of level4_referral_id){
-            let level5_models = await User.findOne({referedBy:i})
-            if(level5_models !== null){
-            level5_emails.push(level5_models.email)
-            let level5_spent_amount = await amountSpentFront.findOne({user_email:level5_models.email})
-            if(level5_spent_amount !== null){
-                level5_spent_amounts[level5_models.email] = level5_spent_amount.amountSpent
-            }
-            }
-        }
-    }
-    var count5 = 0
-    if((level5_spent_amounts).length !== 0){
-        // console.log(level5_spent_amounts)
-        for([email5, spentAmount5] of Object.entries(level5_spent_amounts)){
-            count5 += spentAmount5
-            // console.log(typeof(spentAmount5))
-        }
-        // console.log(count5)
-        level5_total_rewards = count5*0.05
-    }
-//    Getting level6 emails 
-    // Getting level 5 referral ids 
-    level5_referral_id = []
-    level6_emails = []
-    level6_spent_amounts = {}
-    level6_total_rewards = 0
-    // console.log(level3_emails.length, level3_emails)
-    if(level5_emails.length !== 0){
-        for(i of level5_emails){
-            let ref_model = await User.findOne({email:i})
-            if(ref_model !== null){
-            level5_referral_id.push(ref_model.referral)
-            }
-        }
-    }
-    // Getting level6 emails 
-    if(level5_referral_id.length !== 0){
-        for(i of level5_referral_id){
-            let level6_models = await User.findOne({referedBy:i})
-            if(level6_models !== null){
-            level6_emails.push(level6_models.email)
-            let level6_spent_amount = await amountSpentFront.findOne({user_email:level6_models.email})
-            if(level6_spent_amount !== null){
-                level6_spent_amounts[level6_models.email] = level6_spent_amount.amountSpent
-            }
-            }
-        }
-    }
-    var count6 = 0 
-    if((level6_spent_amounts).length !== 0){
-        for(const[email6, spentAmount6] of Object.entries(level6_spent_amounts)){
-            count6 += spentAmount6
-        }
-        level6_total_rewards = count6*0.04
-    }
-//    Getting level7 emails 
-    // Getting level 6 referral ids 
-    level6_referral_id = []
-    level7_emails = []
-    level7_spent_amounts = {}
-    level7_total_rewards = 0
-    // console.log(level3_emails.length, level3_emails)
-    if(level6_emails.length !== 0){
-        for(i of level6_emails){
-            let ref_model = await User.findOne({email:i})
-            if(ref_model !== null){
-            level6_referral_id.push(ref_model.referral)
-            }
-        }
-    }
-    // Getting level7 emails 
-    if(level6_referral_id.length !== 0){
-        for(i of level6_referral_id){
-            let level7_models = await User.findOne({referedBy:i})
-            if(level7_models !== null){
-            level7_emails.push(level7_models.email)
-            let level7_spent_amount = await amountSpentFront.findOne({user_email:level7_models.email})
-            if(level7_spent_amount !== null){
-                level7_spent_amounts[level7_models.email] = level7_spent_amount.amountSpent
-            }
-            }
-        }
-    }
-    var count7 = 0
-    if((level7_spent_amounts).length != 0){
-        for(const[email7, spentAmount7] of Object.entries(level7_spent_amounts)){
-            count7 += spentAmount7
-        }
-        level7_total_rewards = count7*0.03
-    }
-//    Getting level8 emails 
-    // Getting level 7 referral ids 
-    level7_referral_id = []
-    level8_emails = []
-    level8_spent_amounts = {}
-    level8_total_rewards = 0
-    // console.log(level3_emails.length, level3_emails)
-    if(level7_emails.length !== 0){
-        for(i of level7_emails){
-            let ref_model = await User.findOne({email:i})
-            if(ref_model !== null){
-            level7_referral_id.push(ref_model.referral)
-            }
-        }
-    }
-    // Getting level8 emails 
-    if(level7_referral_id.length !== 0){
-        for(i of level7_referral_id){
-            let level8_models = await User.findOne({referedBy:i})
-            if(level8_models !== null){
-            level8_emails.push(level8_models.email)
-            let level8_spent_amount = await amountSpentFront.findOne({user_email:level8_models.email})
-            if(level8_spent_amount !== null){
-                level8_spent_amounts[level8_models.email] = level8_spent_amount.amountSpent
-            }
-            }
-        }
-    }
-    var count8 = 0
-    if((level8_spent_amounts).length != 0){
-        for(const[email8, spentAmount8] of Object.entries(level8_spent_amounts)){
-            count8 += spentAmount8
-        }
-        level8_total_rewards = count8*0.02
-    }
-//    Getting level9 emails 
-    // Getting level 8 referral ids 
-    level8_referral_id = []
-    level9_emails = []
-    level9_spent_amounts = {}
-    level9_total_rewards = 0
-    // console.log(level3_emails.length, level3_emails)
-    if(level8_emails.length !== 0){
-        for(i of level8_emails){
-            let ref_model = await User.findOne({email:i})
-            if(ref_model !== null){
-            level8_referral_id.push(ref_model.referral)
-            }
-        }
-    }
-    // Getting level9 emails 
-    if(level8_referral_id.length !== 0){
-        for(i of level8_referral_id){
-            let level9_models = await User.findOne({referedBy:i})
-            if(level9_models !== null){
-            level9_emails.push(level9_models.email)
-            let level9_spent_amount = await amountSpentFront.findOne({user_email:level9_emails})
-            if(level9_spent_amount !== null){
-                level9_spent_amounts[level9_models.email] = level9_spent_amount.amountSpent
-            }
-            }
-        }
-    }
-    var count9 = 0
-    if((level9_spent_amounts).length != 0){
-        for(const[email9, spentAmount9] of Object.entries(level9_spent_amounts)){
-            count9 += spentAmount9
-        }
-        level9_total_rewards = count9*0.01
-    }
+    return res.json({"level1_referral_info":level1_dict, "level1_rewards":level1_rewards})
 
-     
+    
 
-  
-    return res.json({"level1_emails":level1_emails, "level1_spent_dict":level1_spent_amounts,"level1_rewards":level1_total_rewards ,"level2_spent_dict":level2_spent_amounts, "level2":level2_emails,"level2_rewards":level2_total_rewards ,"level3_spent_dict":level3_spent_amounts ,"level3":level3_emails,"level3_rewards":level3_total_rewards ,"level4_spent_dict":level4_spent_amounts ,"level4":level4_emails,"level4_rewards":level4_total_rewards,"level5_spent_dict":level5_spent_amounts,"level5":level5_emails,"level5_rewards":level5_total_rewards ,"level6_spent_dict":level6_spent_amounts ,"level6":level6_emails,"level6_rewards":level6_total_rewards ,"level7_spent_dict":level7_spent_amounts ,"level7":level7_emails,"level7_rewards":level7_total_rewards ,"level8_spent_dict":level8_spent_amounts ,"level8":level8_emails,"level8_rewards":level8_total_rewards ,"level9_spent_dict":level9_spent_amounts ,"level9":level9_emails, "level9_rewards":level9_total_rewards})
-    // level1 = await userModel.find()
 })
+
+router.post("/referral-info-level2", async function(req, res){
+    const { main_user_referral } = req.body 
+ 
+    // Setting level2 rewards as 0 
+    var level2_rewards = 0
+    level2_dict = {}
+    // Getting level1 users 
+    let level1_users = await User.find({referedBy:main_user_referral})
+    // console.log(level1_users)
+
+    // Getting level 2 users 
+    // Checking if there are any users in level 1 
+    if(level1_users !== undefined){
+        // Iterating through referrals of level1 users to find level 2 users
+        for(i of level1_users){
+        //   Getting level2 users referred  by each level1 user 
+            level2_user = await User.find({referedBy:i.referral})
+            // console.log(level2_user)
+        // If level2 user list exists 
+        if(level2_user !== undefined){
+            // iterate over the level2 user list referrals
+            for(j of level2_user){
+                // check whether each referral has spent any amount 
+                let spent_amount_level2 = await amountSpentFront.findOne({user_referral:j.referral})
+                if(spent_amount_level2 !== null){
+                    // Append to level2 dict 
+                    level2_dict[j.referral] = [spent_amount_level2.amountSpent, spent_amount_level2.created_at]
+                }
+                else{
+                    // If the level2 user hasnt spent any money yet 
+                    level2_dict[j.referral] = [0, "No amount-spent entry yet"]
+
+                }
+
+            }
+        }
+        
+            
+        }
+    }
+    // Find level 2 total rewards 
+    // iterate through level2 dict if it's not empty 
+    // console.log(level2_dict)
+    if((level2_dict).length !== 0){
+        var count2 = 0 
+        for(const[referral2, amount2] of Object.entries(level2_dict)){
+            count2 += amount2[0]
+        }
+        
+        level2_rewards = count2*0.2
+    }
+    return res.json({"level2_dict":level2_dict, "level2_rewards":level2_rewards})
+})
+
+router.post("/referral-info-level3", async function(req, res){
+    const { main_user_referral } = req.body 
+    
+    // setting level3 rewards to 0 
+    var level3_rewards = 0 
+    let level3_dict = {}
+
+    // getting level1 users 
+    let level1_users = await User.find({referedBy:main_user_referral})
+   
+    let level2_users = []
+    // Iterating over level 1 users to get level 2 user list for each level 1 user 
+    if(level1_users !== undefined){
+        for(i of level1_users){
+            let level2_user_list = await User.find({referedBy:i.referral})
+            // if level2 user list for a given level1 user is not empty 
+            if(level2_user_list !== undefined){
+                // Push the level2 user referrals from the list to main level2 user list
+                for(j of level2_user_list){
+                   level2_users.push(j.referral)
+                }
+            }
+        }
+    }
+   
+    // Getting level 3 users now and creating the dict
+    // Iterating over level2 list to obtain level 3 list 
+    let level3_users = []
+    if(level2_users.length !== 0){
+     for(k of level2_users){
+        let level3_user_list = await User.find({referedBy:k}) 
+        if(level3_user_list !== undefined){
+            for(l of level3_user_list){
+                level3_users.push(l.referral)
+            }
+        }
+     }
+    }
+    // Finding the amount spent by each level 3 user and returning the dict 
+    // Iterating over level3 referrals 
+    if(level3_users.length !== 0){
+        for(const m of level3_users){
+        //  Finfing if they have spent any amount 
+        let spent_amount = await amountSpentFront.findOne({user_referral:m})
+        // If user has spent any amount yet 
+        if(spent_amount !== null){
+          level3_dict[m]= [spent_amount.amountSpent, spent_amount.created_at]
+        }
+        // If the user hasnt spent anything yet 
+        else{
+            level3_dict[m] = [0, "No amount-spent entry yet"]
+        }
+        }
+    }
+    // Calculating the total level3 rewards 
+    if((level3_dict).length !== 0){
+        var count3 = 0
+        for(const[referral3, amount3] of Object.entries(level3_dict)){
+            count3 += amount3[0] 
+        }
+        level3_rewards = count3*0.1
+    }
+    return res.json({"level3_dict":level3_dict, "level3_rewards":level3_rewards})
+})
+
+router.post("/referral-info-level4", async function(req, res){
+    const { main_user_referral } = req.body 
+
+    let level4_rewards = 0 
+    let level4_dict = {}
+
+    // Getting level 1 users 
+    let level1_users4 = await User.find({referedBy:main_user_referral})
+
+    // Iterating over level 1 users to get level 2 users 
+    let level2_users = []
+    if(level1_users4 !== undefined){
+        for(const l of level1_users4){
+        let level2_user_cursor = await User.find({referedBy:l.referral})
+        if(level2_user_cursor !== undefined){
+            for(const m of level2_user_cursor){
+                level2_users.push(m.referral)
+            }
+        } 
+        }
+    }
+    // Iterating over level2 users to get level 3 users 
+    let level3_users = []
+    if(level2_users.length !== 0){
+        for(const n of level2_users){
+            let level3_user_cursor = await User.find({referedBy:n})
+            if(level3_user_cursor !== undefined){
+                for(const k of level3_user_cursor){
+                    level3_users.push(k.referral)
+                }
+            }
+        }
+    }
+
+    // Iterating over level3 users to get level 4 users 
+    let level4_users = []
+    if(level3_users.length !== 0){
+        for(const d of level3_users){
+            let level4_user_cursor = await User.find({referedBy:d})
+            if(level4_user_cursor !== undefined){
+                for(const i of level4_user_cursor){
+                    level4_users.push(i.referral)
+                }
+            }
+        }
+    }
+
+    // Creating dict and calculating reward 
+    console.log(level4_users)
+    if(level4_users.length !== 0){
+        for(const j of level4_users){
+            let spent_amount = await amountSpentFront.findOne({user_referral:j})
+            if(spent_amount !== null){
+                level4_dict[j] = [spent_amount.amountSpent, spent_amount.created_at]
+            }
+            else{
+                level4_dict[j] = [0, "No amount-spent entry yet"]
+            }
+        }
+    }
+    var count4 = 0
+    if((level4_dict).length !== 0){
+        for(const[referral4, amount4] of Object.entries(level4_dict)){
+            count4 += amount4[0]
+        }
+        level4_rewards = count4*0.05
+    }
+    
+    return res.json({"level4_dict":level4_dict, "level4_rewards":level4_rewards})
+
+})
+
+router.post("/referral-info-level5", async function(req, res){
+    const { main_user_referral } = req.body 
+
+    let level5_rewards = 0 
+    let level5_dict = {}
+
+    // Getting level 1 users 
+    let level1_users4 = await User.find({referedBy:main_user_referral})
+
+    // Iterating over level 1 users to get level 2 users 
+    let level2_users = []
+    if(level1_users4 !== undefined){
+        for(const l of level1_users4){
+        let level2_user_cursor = await User.find({referedBy:l.referral})
+        if(level2_user_cursor !== undefined){
+            for(const m of level2_user_cursor){
+                level2_users.push(m.referral)
+            }
+        } 
+        }
+    }
+    // Iterating over level2 users to get level 3 users 
+    let level3_users = []
+    if(level2_users.length !== 0){
+        for(const n of level2_users){
+            let level3_user_cursor = await User.find({referedBy:n})
+            if(level3_user_cursor !== undefined){
+                for(const k of level3_user_cursor){
+                    level3_users.push(k.referral)
+                }
+            }
+        }
+    }
+
+    // Iterating over level3 users to get level 4 users 
+    let level4_users = []
+    if(level3_users.length !== 0){
+        for(const d of level3_users){
+            let level4_user_cursor = await User.find({referedBy:d})
+            if(level4_user_cursor !== undefined){
+                for(const i of level4_user_cursor){
+               
+                    level4_users.push(i.referral)
+                }
+            }
+        }
+    }
+    
+    // Iterating over level4 users to get level5 users 
+    let level5_users = []
+    if(level4_users.length !== 0){
+        for(const j of level4_users){
+            let level4_user_cursor = await User.find({referedBy:j})
+            if(level4_user_cursor !== undefined){
+                for(const l of level4_user_cursor){
+                   
+                    level5_users.push(l.referral)
+                }
+            }
+        }
+    }
+// Creating dict and reward 
+// console.log(level5_users)
+if(level5_users.length !== 0){
+    for(const j of level5_users){
+        let spent_amount = await amountSpentFront.findOne({user_referral:j})
+        if(spent_amount !== null){
+            level5_dict[j] = [spent_amount.amountSpent, spent_amount.created_at]
+        }
+        else{
+            level5_dict[j] = [0, "No amount-spent entry yet"]
+        }
+    }
+}
+var count5 = 0
+if((level5_dict).length !== 0){
+    for(const[referral5, amount5] of Object.entries(level5_dict)){
+        count5 += amount5[0]
+    }
+    level5_rewards = count5*0.05
+}
+
+return res.json({"level5_dict":level5_dict, "level5_rewards":level5_rewards})
+    
+
+})
+
+router.post("/referral-info-level6", async function(req, res){
+    const { main_user_referral } = req.body 
+
+    let level6_rewards = 0 
+    let level6_dict = {}
+
+    // Getting level 1 users 
+    let level1_users4 = await User.find({referedBy:main_user_referral})
+
+    // Iterating over level 1 users to get level 2 users 
+    let level2_users = []
+    if(level1_users4 !== undefined){
+        for(const l of level1_users4){
+        let level2_user_cursor = await User.find({referedBy:l.referral})
+        if(level2_user_cursor !== undefined){
+            for(const m of level2_user_cursor){
+                level2_users.push(m.referral)
+            }
+        } 
+        }
+    }
+    // Iterating over level2 users to get level 3 users 
+    let level3_users = []
+    if(level2_users.length !== 0){
+        for(const n of level2_users){
+            let level3_user_cursor = await User.find({referedBy:n})
+            if(level3_user_cursor !== undefined){
+                for(const k of level3_user_cursor){
+                    level3_users.push(k.referral)
+                }
+            }
+        }
+    }
+
+    // Iterating over level3 users to get level 4 users 
+    let level4_users = []
+    if(level3_users.length !== 0){
+        for(const d of level3_users){
+            let level4_user_cursor = await User.find({referedBy:d})
+            if(level4_user_cursor !== undefined){
+                for(const i of level4_user_cursor){
+               
+                    level4_users.push(i.referral)
+                }
+            }
+        }
+    }
+    
+    // Iterating over level4 users to get level5 users 
+    let level5_users = []
+    if(level4_users.length !== 0){
+        for(const j of level4_users){
+            let level5_user_cursor = await User.find({referedBy:j})
+            if(level5_user_cursor !== undefined){
+                for(const l of level5_user_cursor){
+                   
+                    level5_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 5 to get level 6 users 
+    let level6_users = []
+    if(level5_users.length !== 0){
+        for(const j of level5_users){
+            let level6_user_cursor = await User.find({referedBy:j})
+            if(level6_user_cursor !== undefined){
+                for(const l of level6_user_cursor){
+                   
+                    level6_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Creating dict and reward 
+// console.log(level5_users)
+if(level6_users.length !== 0){
+    for(const j of level6_users){
+        let spent_amount = await amountSpentFront.findOne({user_referral:j})
+        if(spent_amount !== null){
+            level6_dict[j] = [spent_amount.amountSpent, spent_amount.created_at]
+        }
+        else{
+            level6_dict[j] = [0, "No amount-spent entry yet"]
+        }
+    }
+}
+var count6 = 0
+if((level6_dict).length !== 0){
+    for(const[referral6, amount6] of Object.entries(level6_dict)){
+        count6 += amount6[0]
+    }
+    level6_rewards = count6*0.04
+}
+
+return res.json({"level6_dict":level6_dict, "level6_rewards":level6_rewards})
+    
+    
+})
+router.post("/referral-info-level7", async function(req, res){
+    const { main_user_referral } = req.body 
+
+    let level7_rewards = 0 
+    let level7_dict = {}
+
+    // Getting level 1 users 
+    let level1_users4 = await User.find({referedBy:main_user_referral})
+
+    // Iterating over level 1 users to get level 2 users 
+    let level2_users = []
+    if(level1_users4 !== undefined){
+        for(const l of level1_users4){
+        let level2_user_cursor = await User.find({referedBy:l.referral})
+        if(level2_user_cursor !== undefined){
+            for(const m of level2_user_cursor){
+                level2_users.push(m.referral)
+            }
+        } 
+        }
+    }
+    // Iterating over level2 users to get level 3 users 
+    let level3_users = []
+    if(level2_users.length !== 0){
+        for(const n of level2_users){
+            let level3_user_cursor = await User.find({referedBy:n})
+            if(level3_user_cursor !== undefined){
+                for(const k of level3_user_cursor){
+                    level3_users.push(k.referral)
+                }
+            }
+        }
+    }
+
+    // Iterating over level3 users to get level 4 users 
+    let level4_users = []
+    if(level3_users.length !== 0){
+        for(const d of level3_users){
+            let level4_user_cursor = await User.find({referedBy:d})
+            if(level4_user_cursor !== undefined){
+                for(const i of level4_user_cursor){
+               
+                    level4_users.push(i.referral)
+                }
+            }
+        }
+    }
+    
+    // Iterating over level4 users to get level5 users 
+    let level5_users = []
+    if(level4_users.length !== 0){
+        for(const j of level4_users){
+            let level5_user_cursor = await User.find({referedBy:j})
+            if(level5_user_cursor !== undefined){
+                for(const l of level5_user_cursor){
+                   
+                    level5_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 5 to get level 6 users 
+    let level6_users = []
+    if(level5_users.length !== 0){
+        for(const j of level5_users){
+            let level6_user_cursor = await User.find({referedBy:j})
+            if(level6_user_cursor !== undefined){
+                for(const l of level6_user_cursor){
+                   
+                    level6_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 6 to get level 7 users 
+    let level7_users = []
+    if(level6_users.length !== 0){
+        for(const j of level6_users){
+            let level7_user_cursor = await User.find({referedBy:j})
+            if(level7_user_cursor !== undefined){
+                for(const l of level7_user_cursor){
+                   
+                    level7_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Creating dict and reward 
+// console.log(level5_users)
+if(level7_users.length !== 0){
+    for(const j of level7_users){
+        let spent_amount = await amountSpentFront.findOne({user_referral:j})
+        if(spent_amount !== null){
+            level7_dict[j] = [spent_amount.amountSpent, spent_amount.created_at]
+        }
+        else{
+            level7_dict[j] = [0, "No amount-spent entry yet"]
+        }
+    }
+}
+var count7 = 0
+if((level7_dict).length !== 0){
+    for(const[referral7, amount7] of Object.entries(level7_dict)){
+        count7 += amount7[0]
+    }
+    level7_rewards = count7*0.03
+}
+
+return res.json({"level7_dict":level7_dict, "level7_rewards":level7_rewards})
+    
+    
+})
+router.post("/referral-info-level8", async function(req, res){
+    const { main_user_referral } = req.body 
+
+    let level8_rewards = 0 
+    let level8_dict = {}
+
+    // Getting level 1 users 
+    let level1_users4 = await User.find({referedBy:main_user_referral})
+
+    // Iterating over level 1 users to get level 2 users 
+    let level2_users = []
+    if(level1_users4 !== undefined){
+        for(const l of level1_users4){
+        let level2_user_cursor = await User.find({referedBy:l.referral})
+        if(level2_user_cursor !== undefined){
+            for(const m of level2_user_cursor){
+                level2_users.push(m.referral)
+            }
+        } 
+        }
+    }
+    // Iterating over level2 users to get level 3 users 
+    let level3_users = []
+    if(level2_users.length !== 0){
+        for(const n of level2_users){
+            let level3_user_cursor = await User.find({referedBy:n})
+            if(level3_user_cursor !== undefined){
+                for(const k of level3_user_cursor){
+                    level3_users.push(k.referral)
+                }
+            }
+        }
+    }
+
+    // Iterating over level3 users to get level 4 users 
+    let level4_users = []
+    if(level3_users.length !== 0){
+        for(const d of level3_users){
+            let level4_user_cursor = await User.find({referedBy:d})
+            if(level4_user_cursor !== undefined){
+                for(const i of level4_user_cursor){
+               
+                    level4_users.push(i.referral)
+                }
+            }
+        }
+    }
+    
+    // Iterating over level4 users to get level5 users 
+    let level5_users = []
+    if(level4_users.length !== 0){
+        for(const j of level4_users){
+            let level5_user_cursor = await User.find({referedBy:j})
+            if(level5_user_cursor !== undefined){
+                for(const l of level5_user_cursor){
+                   
+                    level5_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 5 to get level 6 users 
+    let level6_users = []
+    if(level5_users.length !== 0){
+        for(const j of level5_users){
+            let level6_user_cursor = await User.find({referedBy:j})
+            if(level6_user_cursor !== undefined){
+                for(const l of level6_user_cursor){
+                   
+                    level6_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 6 to get level 7 users 
+    let level7_users = []
+    if(level6_users.length !== 0){
+        for(const j of level6_users){
+            let level7_user_cursor = await User.find({referedBy:j})
+            if(level7_user_cursor !== undefined){
+                for(const l of level7_user_cursor){
+                   
+                    level7_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 7 to get level 8 users 
+    let level8_users = []
+    if(level7_users.length !== 0){
+        for(const j of level7_users){
+            let level8_user_cursor = await User.find({referedBy:j})
+            if(level8_user_cursor !== undefined){
+                for(const l of level8_user_cursor){
+                   
+                    level8_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Creating dict and reward 
+
+if(level8_users.length !== 0){
+    for(const j of level8_users){
+        let spent_amount = await amountSpentFront.findOne({user_referral:j})
+        if(spent_amount !== null){
+            level8_dict[j] = [spent_amount.amountSpent, spent_amount.created_at]
+        }
+        else{
+            level8_dict[j] = [0, "No amount-spent entry yet"]
+        }
+    }
+}
+var count8 = 0
+if((level8_dict).length !== 0){
+    for(const[referral8, amount8] of Object.entries(level8_dict)){
+        count8 += amount8[0]
+    }
+    level8_rewards = count8*0.02
+}
+
+return res.json({"level8_dict":level8_dict, "level8_rewards":level8_rewards})
+    
+    
+})
+router.post("/referral-info-level9", async function(req, res){
+    const { main_user_referral } = req.body 
+
+    let level9_rewards = 0 
+    let level9_dict = {}
+
+    // Getting level 1 users 
+    let level1_users4 = await User.find({referedBy:main_user_referral})
+
+    // Iterating over level 1 users to get level 2 users 
+    let level2_users = []
+    if(level1_users4 !== undefined){
+        for(const l of level1_users4){
+        let level2_user_cursor = await User.find({referedBy:l.referral})
+        if(level2_user_cursor !== undefined){
+            for(const m of level2_user_cursor){
+                level2_users.push(m.referral)
+            }
+        } 
+        }
+    }
+    // Iterating over level2 users to get level 3 users 
+    let level3_users = []
+    if(level2_users.length !== 0){
+        for(const n of level2_users){
+            let level3_user_cursor = await User.find({referedBy:n})
+            if(level3_user_cursor !== undefined){
+                for(const k of level3_user_cursor){
+                    level3_users.push(k.referral)
+                }
+            }
+        }
+    }
+
+    // Iterating over level3 users to get level 4 users 
+    let level4_users = []
+    if(level3_users.length !== 0){
+        for(const d of level3_users){
+            let level4_user_cursor = await User.find({referedBy:d})
+            if(level4_user_cursor !== undefined){
+                for(const i of level4_user_cursor){
+               
+                    level4_users.push(i.referral)
+                }
+            }
+        }
+    }
+    
+    // Iterating over level4 users to get level5 users 
+    let level5_users = []
+    if(level4_users.length !== 0){
+        for(const j of level4_users){
+            let level5_user_cursor = await User.find({referedBy:j})
+            if(level5_user_cursor !== undefined){
+                for(const l of level5_user_cursor){
+                   
+                    level5_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 5 to get level 6 users 
+    let level6_users = []
+    if(level5_users.length !== 0){
+        for(const j of level5_users){
+            let level6_user_cursor = await User.find({referedBy:j})
+            if(level6_user_cursor !== undefined){
+                for(const l of level6_user_cursor){
+                   
+                    level6_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 6 to get level 7 users 
+    let level7_users = []
+    if(level6_users.length !== 0){
+        for(const j of level6_users){
+            let level7_user_cursor = await User.find({referedBy:j})
+            if(level7_user_cursor !== undefined){
+                for(const l of level7_user_cursor){
+                   
+                    level7_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 7 to get level 8 users 
+    let level8_users = []
+    if(level7_users.length !== 0){
+        for(const j of level7_users){
+            let level8_user_cursor = await User.find({referedBy:j})
+            if(level8_user_cursor !== undefined){
+                for(const l of level8_user_cursor){
+                   
+                    level8_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Iterating over level 8 to get level 9 users 
+    let level9_users = []
+    if(level8_users.length !== 0){
+        for(const j of level8_users){
+            let level9_user_cursor = await User.find({referedBy:j})
+            if(level9_user_cursor !== undefined){
+                for(const l of level9_user_cursor){
+                   
+                    level9_users.push(l.referral)
+                }
+            }
+        }
+    }
+    // Creating dict and reward 
+
+if(level9_users.length !== 0){
+    for(const j of level9_users){
+        let spent_amount = await amountSpentFront.findOne({user_referral:j})
+        if(spent_amount !== null){
+            level9_dict[j] = [spent_amount.amountSpent, spent_amount.created_at]
+        }
+        else{
+            level9_dict[j] = [0, "No amount-spent entry yet"]
+        }
+    }
+}
+var count9 = 0
+if((level9_dict).length !== 0){
+    for(const[referral9, amount9] of Object.entries(level9_dict)){
+        count9 += amount9[0]
+    }
+    level9_rewards = count9*0.01
+}
+
+return res.json({"level9_dict":level9_dict, "level8_rewards":level9_rewards})
+    
+    
+})
+
 
 module.exports = router
