@@ -3,12 +3,23 @@ router = express.Router()
 // referModel = require("../models/referralModel")
 User = require("../models/wallet_address")
 amountSpentFront = require("../models/spentAmount")
+var purchaseHistory = require("../models/purchase_history")
 
 // Test route 
 router.get("/test-amount", async function(req, res){
     const { email } = req.body 
     amountModel = await amountSpentFront.find({user_email:email})
     return res.json({"response":amountModel})
+})
+
+// Purchase History  
+router.post("/purchase-history", async function(req, res){
+    const { user_referral_req } = req.body  
+    // Get purchase history model 
+    let purchase_history_model = await purchaseHistory.find({user_referral:user_referral_req})
+    console.log(purchase_history_model)
+    return res.json({"purchase_history": purchase_history_model})
+
 })
 
 // Record spent amount 
@@ -20,6 +31,14 @@ router.post("/record-spent-amount", async function(req, res){
     // console.log(user_verify)
     if(user_verify == null){
         return res.json({"response":"Invalid User"})
+    }
+    // record single purchase history 
+    try{
+    purchase_history_model = await purchaseHistory.create({user_referral:user_referral_front, amountSpent:amount})
+    purchase_history_model.save()
+    
+    }catch(error){
+        console.log(error)
     }
 
     // Record spent amount 
@@ -100,7 +119,13 @@ router.post("/referral-info-level1", async function(req, res){
         level1_rewards = count1*0.5
         
     }
-    return res.json({"level1_referral_info":level1_dict, "level1_rewards":level1_rewards})
+    // countT = 0
+    // for(const[key, pair] of Object.entries(level1_dict)){
+    //     console.log(key)
+    //     countT += 1
+    // }
+    // console.log(countT)
+    return res.json({"level1_dict":level1_dict, "level1_rewards":level1_rewards})
 
     
 
@@ -273,7 +298,7 @@ router.post("/referral-info-level4", async function(req, res){
     }
 
     // Creating dict and calculating reward 
-    console.log(level4_users)
+    // console.log(level4_users)
     if(level4_users.length !== 0){
         for(const j of level4_users){
             let spent_amount = await amountSpentFront.findOne({user_referral:j})
