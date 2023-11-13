@@ -119,13 +119,12 @@ router.post("/referral-info-level1", async function(req, res){
         level1_rewards = count1*0.5
         
     }
-    // countT = 0
-    // for(const[key, pair] of Object.entries(level1_dict)){
-    //     console.log(key)
-    //     countT += 1
-    // }
-    // console.log(countT)
-    return res.json({"level1_dict":level1_dict, "level1_rewards":level1_rewards})
+
+    // Counting dictionary length 
+    count_level1 = Object.keys(level1_dict).length 
+    // console.log(count_level1)
+    
+    return res.json({"level1_dict":level1_dict, "level1_rewards":level1_rewards, "count_level1":count_level1})
 
     
 
@@ -182,7 +181,8 @@ router.post("/referral-info-level2", async function(req, res){
         
         level2_rewards = count2*0.2
     }
-    return res.json({"level2_dict":level2_dict, "level2_rewards":level2_rewards})
+    count_level2 = Object.keys(level2_dict).length
+    return res.json({"level2_dict":level2_dict, "level2_rewards":level2_rewards, "count_level2":count_level2})
 })
 
 router.post("/referral-info-level3", async function(req, res){
@@ -247,7 +247,8 @@ router.post("/referral-info-level3", async function(req, res){
         }
         level3_rewards = count3*0.1
     }
-    return res.json({"level3_dict":level3_dict, "level3_rewards":level3_rewards})
+    count_level3 = Object.keys(level3_dict).length
+    return res.json({"level3_dict":level3_dict, "level3_rewards":level3_rewards, "count_level3":count_level3})
 })
 
 router.post("/referral-info-level4", async function(req, res){
@@ -317,8 +318,8 @@ router.post("/referral-info-level4", async function(req, res){
         }
         level4_rewards = count4*0.05
     }
-    
-    return res.json({"level4_dict":level4_dict, "level4_rewards":level4_rewards})
+    count_level4 = Object.keys(level4_dict).length
+    return res.json({"level4_dict":level4_dict, "level4_rewards":level4_rewards, "count_level4":count_level4})
 
 })
 
@@ -403,8 +404,8 @@ if((level5_dict).length !== 0){
     }
     level5_rewards = count5*0.05
 }
-
-return res.json({"level5_dict":level5_dict, "level5_rewards":level5_rewards})
+count_level5 = Object.keys(level5_dict).length
+return res.json({"level5_dict":level5_dict, "level5_rewards":level5_rewards, "count_level5":count_level5})
     
 
 })
@@ -503,8 +504,8 @@ if((level6_dict).length !== 0){
     }
     level6_rewards = count6*0.04
 }
-
-return res.json({"level6_dict":level6_dict, "level6_rewards":level6_rewards})
+count_level6 = Object.keys(level6_dict).length
+return res.json({"level6_dict":level6_dict, "level6_rewards":level6_rewards, "count_level6":count_level6})
     
     
 })
@@ -615,8 +616,8 @@ if((level7_dict).length !== 0){
     }
     level7_rewards = count7*0.03
 }
-
-return res.json({"level7_dict":level7_dict, "level7_rewards":level7_rewards})
+count_level7 = Object.keys(level7_dict).length
+return res.json({"level7_dict":level7_dict, "level7_rewards":level7_rewards, "count_level7":count_level7 })
     
     
 })
@@ -740,8 +741,8 @@ if((level8_dict).length !== 0){
     }
     level8_rewards = count8*0.02
 }
-
-return res.json({"level8_dict":level8_dict, "level8_rewards":level8_rewards})
+count_level8 = Object.keys(level8_dict).length
+return res.json({"level8_dict":level8_dict, "level8_rewards":level8_rewards, "count_level8":count_level8})
     
     
 })
@@ -878,8 +879,8 @@ if((level9_dict).length !== 0){
     }
     level9_rewards = count9*0.01
 }
-
-return res.json({"level9_dict":level9_dict, "level9_rewards":level9_rewards})
+count_level9 = Object.keys(level9_dict).length
+return res.json({"level9_dict":level9_dict, "level9_rewards":level9_rewards, "count_level9":count_level9})
     
     
 })
