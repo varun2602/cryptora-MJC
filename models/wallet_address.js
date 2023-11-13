@@ -9,6 +9,12 @@ const walletAddressSchema = new mongoose.Schema({
         type: String,
         unique: true,
     },
+    referedBy:{
+        type: String,
+    },
+    referral:{
+        type: String,
+    }
 });
 
 // async function generateUserId(model) {

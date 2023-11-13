@@ -1,7 +1,7 @@
 const express = require("express")
 router = express.Router()
 // referModel = require("../models/referralModel")
-User = require("../models/users")
+User = require("../models/wallet_address")
 amountSpentFront = require("../models/spentAmount")
 
 // Test route 
@@ -54,15 +54,18 @@ router.post("/record-spent-amount", async function(req, res){
 
 router.post("/referral-info-level1", async function(req, res){
     const { main_user_referral } = req.body
+    // console.log(main_user_referral)
 
     // Get level 1 referrals 
     let level1_referrals = await User.find({referedBy: main_user_referral})
+    // console.log(level1_referrals)
    
     let level1_dict = {}
     let level1_rewards = 0
     for(i of level1_referrals){
         // Find the amount spent model corresponding to each level1 referral 
         let spent_amount_model = await amountSpentFront.findOne({user_referral:i.referral})
+
         
         
         // If the referral has spent money 
@@ -840,7 +843,7 @@ if((level9_dict).length !== 0){
     level9_rewards = count9*0.01
 }
 
-return res.json({"level9_dict":level9_dict, "level8_rewards":level9_rewards})
+return res.json({"level9_dict":level9_dict, "level9_rewards":level9_rewards})
     
     
 })

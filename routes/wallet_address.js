@@ -4,12 +4,12 @@ const WalletAddress = require('../models/wallet_address');
 
 router.post('/address', async (req, res) => {
     try {
-        const { address } = req.body;
+        const { address, referedBy, referral } = req.body;
         const existingAddress = await WalletAddress.findOne({ address });
         if (existingAddress) {
             return res.status(400).json({ message: 'Address already registered' });
         }
-        const walletAddress = new WalletAddress({ address });
+        const walletAddress = new WalletAddress({ address, referedBy, referral });
         await walletAddress.save();
         res.status(201).json({ message: 'Wallet address created successfully' });
     } catch (error) {
