@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const uniqueValidator = require('mongoose-unique-validator');
 const randomstring = require('randomstring');
+const Wallet = require("./wallet_address")
 
 const userSchema = new mongoose.Schema({
     id: {
@@ -32,6 +33,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: false
     },
+    wallet_address:{
+        type:String,
+        ref:"Wallet",
+        unique:true
+    }
  
 
 });
