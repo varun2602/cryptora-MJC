@@ -50,6 +50,17 @@ router.post("/record-spent-amount", async function(req, res){
     
 })
 
+router.post("/get-spent-amount", async function(req, res){
+    const { user_referral_front } = req.body 
+    
+    // Get the amount spent model 
+    let amount_spent_model = await amountSpentFront.findOne({"user_referral": user_referral_front})
+    
+    total_amount_spent = amount_spent_model.amountSpent 
+    return res.json({"total_amount_spent":total_amount_spent})
+
+})
+
 
 
 router.post("/referral-info-level1", async function(req, res){
