@@ -14,11 +14,15 @@ router.get("/test-amount", async function(req, res){
 
 // Purchase History  
 router.post("/purchase-history", async function(req, res){
-    const { user_referral_req } = req.body  
+    const { user_referral_req } = req.body 
+    // Get whom the user was referrd by 
+    let wallet_model = await User.findOne({"address":user_referral_req})
+    let transaction_referred_by = wallet_model.referedBy
+    
     // Get purchase history model 
     let purchase_history_model = await purchaseHistory.find({user_referral:user_referral_req})
-    console.log(purchase_history_model)
-    return res.json({"purchase_history": purchase_history_model})
+    
+    return res.json({"purchase_history": purchase_history_model, "referedBy":transaction_referred_by})
 
 })
 
