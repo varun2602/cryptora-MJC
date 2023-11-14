@@ -9,6 +9,7 @@ var purchaseHistory = require("../models/purchase_history")
 router.get("/test-amount", async function(req, res){
     const { email } = req.body 
     amountModel = await amountSpentFront.find({user_email:email})
+   
     return res.json({"response":amountModel})
 })
 
@@ -55,7 +56,7 @@ router.post("/record-spent-amount", async function(req, res){
             "user_referral":user_referral_front,
             "amountSpent":amount
         }
-        // console.log(newEntry)
+        console.log(newEntry)
         amountSpentFront.create(newEntry).then(function(result){
             return res.json(result)
         }).catch(function(error){
@@ -65,6 +66,7 @@ router.post("/record-spent-amount", async function(req, res){
     else{
         amount_spent_model = await amountSpentFront.findOne({user_referral:user_referral_front})
         amount_spent_model.amountSpent += amount
+        // console.log(amount_spent_model)
         amount_spent_model.save()
         return res.json({"response":"200"})
     }
@@ -78,7 +80,9 @@ router.post("/get-spent-amount", async function(req, res){
     
     // Get the amount spent model 
     let amount_spent_model = await amountSpentFront.findOne({"user_referral": user_referral_front})
-    
+    if(amount_spent_model == undefined){
+        return res.json({"response": "No amount spent!"})
+    }
     total_amount_spent = amount_spent_model.amountSpent 
     return res.json({"total_amount_spent":total_amount_spent})
 
