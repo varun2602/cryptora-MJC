@@ -893,5 +893,14 @@ return res.json({"level9_dict":level9_dict, "level9_rewards":level9_rewards, "co
     
 })
 
+router.post("/userid-by-address", async function(req, res){
+    const {referral_front} = req.body 
+
+    let wallet_model = await User.findOne({address:referral_front})
+    // console.log(wallet_model)
+    let userID = wallet_model.user_id 
+    return res.json({"user_id":userID})
+})
+
 
 module.exports = router
