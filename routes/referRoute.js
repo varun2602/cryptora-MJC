@@ -43,7 +43,7 @@ router.post("/record-spent-amount", async function(req, res){
     let user_model_reward = await User.findOne({address:user_referral_front})
     
 
-    for(let i = 0; i < 8; i++){
+    for(let i = 0; i < 9; i++){
         // Get the wallet address of the user who referred the above user 
      let user_to_reward_referral = user_model_reward.referedBy
     //  Check if referedBy is valid 
@@ -179,14 +179,18 @@ router.post("/record-spent-amount", async function(req, res){
         if(user_to_reward_model == null){
             
             user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount8})
-
+            
         }
         // Else, if the entry exists, update the reward amount
         else{
             user_to_reward_model.reward += amount8 
             user_to_reward_model.save()
+            console.log("test2")
         }
     }
+    // else if(i == 9){
+
+    // }
     user_model_reward = await User.findOne({address:user_to_reward_referral})
 }
     }

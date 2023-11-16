@@ -21,4 +21,4 @@ const rewardsSchema = new mongoose.Schema({
  
 
 });
-module.exports = mongoose.model("Rewards", rewardsSchema)
+module.exports = mongoose.model("RewardsUpdated", rewardsSchema)
