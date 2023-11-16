@@ -4,6 +4,7 @@ router = express.Router()
 User = require("../models/wallet_address")
 amountSpentFront = require("../models/spentAmount")
 var purchaseHistory = require("../models/purchase_history")
+var rewardsToClaim = require("../models/rewards")
 
 // Test route 
 router.get("/test-amount", async function(req, res){
@@ -30,16 +31,171 @@ router.post("/purchase-history", async function(req, res){
 // Record spent amount 
 router.post("/record-spent-amount", async function(req, res){
     const { amount, user_referral_front } = req.body 
-    
     // Verify if it's a valid user  
     user_verify = await User.findOne({referral:user_referral_front})
     // console.log(user_verify)
     if(user_verify == null){
         return res.json({"response":"Invalid User"})
     }
+    
+    // Record in rewards model for all 9 levels to help users claim later 
+    // Get wallet address of user model 
+    let user_model_reward = await User.findOne({address:user_referral_front})
+    
+
+    for(let i = 0; i < 8; i++){
+        // Get the wallet address of the user who referred the above user 
+     let user_to_reward_referral = user_model_reward.referedBy
+    //  Check if referedBy is valid 
+    let check_valid = await User.findOne({address:user_to_reward_referral})
+    // Add condition for reward update, referedBy should be a valid user_model_reward.If the referral is the end of listenerCount(boundary condition), he wont be refered by anyone else, hence if loop is added 
+    if(check_valid !== null){
+         // get rewards model 
+         let user_to_reward_model = await rewardsToClaim.findOne({user_referral:user_to_reward_referral})
+     if(i == 0){
+        let amount0 = amount*0.5
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount0})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount0 
+            user_to_reward_model.save()
+        }
+     }
+     else if(i == 1){
+        let amount1 = amount*0.2
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount1})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount1 
+            user_to_reward_model.save()
+        }
+     }
+     else if(i == 2){
+        let amount2 = amount*0.1
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount2})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount2
+            user_to_reward_model.save()
+        }
+     }
+     else if(i == 3){
+        let amount3 = amount*0.05
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount3})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount3 
+            user_to_reward_model.save()
+        }
+     }
+     else if(i == 4){
+        let amount4 = amount*0.05
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount4})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount4
+            user_to_reward_model.save()
+        }
+     }
+     else if(i == 5){
+        let amount5 = amount*0.04
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount5})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount5 
+            user_to_reward_model.save()
+        }
+     }
+     else if(i == 6){
+        let amount6 = amount*0.03
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount6})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount6 
+            user_to_reward_model.save()
+        }
+     }
+     else if(i == 7){
+        let amount7 = amount*0.02
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount7})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount7
+            user_to_reward_model.save()
+        }
+     }
+     else if(i== 8){
+        let amount8 = amount*0.01
+       
+        // If entry doesnt exists, create one 
+        if(user_to_reward_model == null){
+            
+            user_to_reward_model = await rewardsToClaim.create({user_referral:user_to_reward_referral, reward:amount8})
+
+        }
+        // Else, if the entry exists, update the reward amount
+        else{
+            user_to_reward_model.reward += amount8 
+            user_to_reward_model.save()
+        }
+    }
+    user_model_reward = await User.findOne({address:user_to_reward_referral})
+}
+    }
+
+    
+    
     // record single purchase history 
     try{
-    purchase_history_model = await purchaseHistory.create({user_referral:user_referral_front, amountSpent:amount})
+    let purchase_history_model = await purchaseHistory.create({user_referral:user_referral_front, amountSpent:amount})
     purchase_history_model.save()
     
     }catch(error){
@@ -56,7 +212,7 @@ router.post("/record-spent-amount", async function(req, res){
             "user_referral":user_referral_front,
             "amountSpent":amount
         }
-        console.log(newEntry)
+        // console.log(newEntry)
         amountSpentFront.create(newEntry).then(function(result){
             return res.json(result)
         }).catch(function(error){
@@ -903,6 +1059,44 @@ router.post("/address-by-userid", async function(req, res){
     }
     
     return res.json({"address":address_value})
+})
+
+router.post("/claim-rewards", async function(req,res){
+    const { reward_referral } = req.body 
+
+    let reward_model = await rewardsToClaim.findOne({user_referral:reward_referral})
+    if(reward_model !== null){
+        if(reward_model.reward !== 0){
+        let response_reward = reward_model.reward
+        reward_model.reward = 0 
+        reward_model.save()
+        return res.json({"response":`Reward of $ ${response_reward} claimed successfully!`})
+        }
+        else{
+            return res.json({"response":"No rewards available to claim!"})
+        }
+    }
+    else{
+        return res.json({"response":"No rewards available to claim!"})
+    }
+
+})
+
+router.post("/available-rewards", async function(req, res){
+    const {available_reward_referral} = req.body 
+
+    let reward_model = await rewardsToClaim.findOne({user_referral:available_reward_referral})
+    if(reward_model !== null){
+        if(reward_model.reward !== 0){
+            return res.json({"available_rewards":reward_model.reward})
+        }
+        else{
+            return res.json({"available_rewards":0})
+        }
+    }
+    else{
+        return res.json({"available_rewards":0})
+    }
 })
 
 
